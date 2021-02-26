@@ -1,0 +1,51 @@
+#ifndef ROGUE_PRINT_SETTINGS_H
+#define ROGUE_PRINT_SETTINGS_H
+
+// This file sets compile time setting for how monsters and the dungeon is printed out.
+
+// Settings to control how characters are printed
+#define PC_COLOR FOREGROUND_COBALT
+#define PC_SYMBOL '@'
+
+// Settings to control how the dungeon is printed
+#define ROCK_COLOR FOREGROUND_WHITE
+#define ROCK_BACKGROUND BACKGROUND_WHITE
+#define ROCK_CHAR ' '
+
+#define CORRIDOR_COLOR FOREGROUND_WHITE
+#define CORRIDOR_BACKGROUND BACKGROUND_GREY
+#define CORRIDOR_CHAR ' '
+
+#define ROOM_COLOR FOREGROUND_WHITE
+#define ROOM_BACKGROUND BACKGROUND_BLACK
+#define ROOM_CHAR ' '
+
+#define STAIR_UP_COLOR ROOM_COLOR
+#define STAIR_UP_BACKGROUND ROOM_BACKGROUND
+#define STAIR_UP_CHAR '<'
+
+#define STAIR_DOWN_COLOR ROOM_COLOR
+#define STAIR_DOWN_BACKGROUND ROOM_BACKGROUND
+#define STAIR_DOWN_CHAR '>'
+
+// Setting to control how cost maps are printed
+#define COST_MAP_BACKGROUND BACKGROUND_BLACK
+
+#define COST_0 FOREGROUND_GREY
+#define COST_1 FOREGROUND_RED
+#define COST_2 FOREGROUND_ORANGE
+#define COST_3 FOREGROUND_YELLOW
+#define COST_4 FOREGROUND_LIME_GREEN
+#define COST_5 FOREGROUND_GREEN
+#define COST_6 FOREGROUND_TEAL
+#define COST_7 FOREGROUND_BLUE
+#define COST_8 FOREGROUND_PURPLE
+#define COST_9 FOREGROUND_PINK
+
+#define COST_IMPOSSIBLE_COLOR FOREGROUND_WHITE
+#define COST_IMPOSSIBLE 'X'
+
+#define COST_INFINITE_COLOR FOREGROUND_WHITE
+#define COST_INFINITE ' '
+
+#endif //ROGUE_PRINT_SETTINGS_H

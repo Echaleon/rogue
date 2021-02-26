@@ -1,0 +1,35 @@
+NOTE: Regular monsters are set up so that they cannot move diagonally if one of the cardinal directions is not open.
+This is so monsters can't jump diagonally if rooms or corridors happen to be touching in just the corner. Tunneling
+monsters can still break through.
+
+The bulk of this weeks project was actually updating it to my standards. I ripped out all recursion from the code and
+drastically sped up the entire project. Any recursion was replaced with a stack of my own design, which uses a
+dynamically allocated array, and will grow as necessary. The dungeon generation algorithms were also updated to be more
+efficient and use far less memory. I replaced the partition algorithm with one that doesn't store partitions it doesn't
+need, and will generate rooms on the fly. It's the same idea, but just a lot faster.
+
+The hard part of this week was the pairing heap. This is an implementation of a priority queue, much like a
+Fibonacci heap. While theoretically slower, (it has worse time complexities for decrease_key than a Fibonacci
+heap) in practice for any realistic size, it's faster, as it has far better time constants. Mine is developed to be
+both dynamically allocated or intrusive, depending on the needs of the code.
+
+My Dijkstra's algorithm was of course converted to use that, and I believe it is nearly as optimal as I can realistically
+make it. It's certainly much much faster than my original implementation of a recursive based mapping -- on the order of
+100x or more times I believe. It does not do any work it needs, only adding cells to the queue that are eligible to be
+processed, storing the heap nodes intrusively in the vertex structure so it makes very few calls to malloc()
+and calculates the movement cost of dungeon cells only during initialization so as to avoid making too many calls to it.
+
+As with last week you can do rogue --help to get help on possible commands to pass into the program, such as loading
+files from a path, or loading and saving pgm files.
+
+And just to makes things nice, the cost maps are printed with nice colors to make it (at least to me) easier to parse.
+
+White space = Rocks
+Grey space = Corridor
+Black space = Room
+
+< = Up Stair
+> = Down Stair
+
+Code has been ran through valgrind to find any memory leaks: none were found.
+See comments in code for additional documentation. It's heavily heavily commented.
