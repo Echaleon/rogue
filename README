@@ -1,28 +1,13 @@
-NOTE: Regular monsters are set up so that they cannot move diagonally if one of the cardinal directions is not open.
-This is so monsters can't jump diagonally if rooms or corridors happen to be touching in just the corner. Tunneling
-monsters can still break through.
+A completely playable dungeon... mostly. The player character does not move, because it's pointless for next week in 1.05.
+That being said, the code exists for the player to run, as there exists the ability to generate reverse Dijkstra mappings.
+This will be useful for fleeing mosters later.
 
-The bulk of this weeks project was actually updating it to my standards. I ripped out all recursion from the code and
-drastically sped up the entire project. Any recursion was replaced with a stack of my own design, which uses a
-dynamically allocated array, and will grow as necessary. The dungeon generation algorithms were also updated to be more
-efficient and use far less memory. I replaced the partition algorithm with one that doesn't store partitions it doesn't
-need, and will generate rooms on the fly. It's the same idea, but just a lot faster.
+The make file is new and heavily updated to be much better, doing out of tree builds and having multiple targets.
 
-The hard part of this week was the pairing heap. This is an implementation of a priority queue, much like a
-Fibonacci heap. While theoretically slower, (it has worse time complexities for decrease_key than a Fibonacci
-heap) in practice for any realistic size, it's faster, as it has far better time constants. Mine is developed to be
-both dynamically allocated or intrusive, depending on the needs of the code.
+The bulk of the code this week is in character.c, where the movement functions are, and in the new dungeon.c.
 
-My Dijkstra's algorithm was of course converted to use that, and I believe it is nearly as optimal as I can realistically
-make it. It's certainly much much faster than my original implementation of a recursive based mapping -- on the order of
-100x or more times I believe. It does not do any work it needs, only adding cells to the queue that are eligible to be
-processed, storing the heap nodes intrusively in the vertex structure so it makes very few calls to malloc()
-and calculates the movement cost of dungeon cells only during initialization so as to avoid making too many calls to it.
-
-As with last week you can do rogue --help to get help on possible commands to pass into the program, such as loading
-files from a path, or loading and saving pgm files.
-
-And just to makes things nice, the cost maps are printed with nice colors to make it (at least to me) easier to parse.
+Dungeon generation was split from actual playing of the dungeons, so play_dungeon() contains the routines to actually do
+so.
 
 White space = Rocks
 Grey space = Corridor

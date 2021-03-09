@@ -8,10 +8,15 @@
 
 #define FOREGROUND_WHITE "\x1b[38;2;255;255;255m"
 #define FOREGROUND_GREY "\x1b[38;2;170;170;170m"
+#define FOREGROUND_KHAKI "\x1b[38;2;240;230;140m"
+#define FOREGROUND_BROWN "\x1b[38;2;139;69;19m"
 
 #define FOREGROUND_LIME_GREEN "\x1b[38;2;50;205;50m"
 #define FOREGROUND_COBALT "\x1b[38;2;70;130;180m"
 #define FOREGROUND_TEAL "\x1b[38;2;0;128;128m"
+#define FOREGROUND_SKY_BLUE "\x1b[38;2;135;206;235m"
+#define FOREGROUND_BRICK "\x1b[38;2;178;34;34m"
+#define FOREGROUND_SLATE_BLUE "\x1b[38;2;106;90;205m"
 
 #define FOREGROUND_RED "\x1b[38;2;255;0;0m"
 #define FOREGROUND_ORANGE "\x1b[38;2;255;165;0m"
@@ -43,8 +48,11 @@ void shuffle_int_array(int *arr, int n);
 // Returns the number of digits in a given integer (used for printing)
 int count_digits(int n);
 
+// Calculates the Manhattan distance between two points
+int manhattan_distance(int y0, int x0, int y1, int x1);
+
 // Wrapper to kill the program while informing the user as to why. MSG MUST BE PROPERLY FORMATTED FOR FPRINT OR WE WILL
 // CAUSE A SEGFAULT AND CRASH
-_Noreturn void kill(int code, char *msg, ...);
+_Noreturn void bail(int code, char *msg, ...);
 
 #endif //ROGUE_HELPERS_H

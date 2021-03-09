@@ -1,14 +1,13 @@
-#include <stdio.h>
 #include <stdlib.h>
 
-#include "dungeon.h"
-#include "dijkstra.h"
-#include "../Character/character.h"
-#include "../Helpers/helpers.h"
-#include "../Helpers/stack.h"
-#include "../Settings/dungeon-settings.h"
-#include "../Settings/print-settings.h"
-#include "../Settings/exit-codes.h"
+#include "dungeon-random.h"
+
+#include "Dungeon/dijkstra.h"
+#include "Dungeon/dungeon.h"
+#include "Helpers/helpers.h"
+#include "Helpers/stack.h"
+#include "Settings/dungeon-settings.h"
+#include <Settings/exit-codes.h>
 
 // Private struct to store partitions. Same as rooms (for now), but separating them makes it easier to extend Room_T
 // in the future, and keeps code more readable.
@@ -104,7 +103,7 @@ static bool fill_partition(Dungeon_T *d, const Partition_T *p) {
 // bailing out if it can't fill one, and cleans up the partition. Returns true only if it was able to fill the dungeon
 // successfully.
 static bool generate_rooms(Dungeon_T *d, int max_rooms) {
-    Stack_T *s;
+    struct Stack_S *s;
     Partition_T *p;
 
     // Initialize our stack, and seed it with a partition
@@ -216,40 +215,51 @@ static void randomize_hardness(Dungeon_T *d) {
 // Heavy lifting function that paints corridors. Given the source pair and destination pair, it will call the
 // dijkstra functions to create a new cost map from the source. It then starts at the destination and "rolls downhill".
 // By starting at the destination and always visiting the cheapest neighbor node, we can generate a shortest path.
-// There may be multiple, but it will always go in order of UP, DOWN, LEFT, and then RIGHT, if costs are equal.
+// There may be multiple, but it will always go in order of NORTH, SOUTH, WEST, and then EAST, if costs are equal.
 // As it builds the path, it will paint any rock tiles to be corridors and set the hardness of those to be equal to
 // the default hardness in setting.h
 static void paint_corridor(Dungeon_T *d, int src_y, int src_x, int dst_y, int dst_x) {
+
+    // Define cardinal enums to help avoid programming errors
+    typedef enum Cardinal_E {
+        UP, DOWN, LEFT, RIGHT
+    } Cardinal_T;
+
+    int sources[1][2];
     int *cost;
     int i, j;
 
+    // Fill the sources array to pass to the Dijkstra function.
+    sources[0][0] = src_y;
+    sources[0][1] = src_x;
+
     // Generate our cost map. See dijkstra.c
-    cost = generate_dijkstra_map(d, src_y, src_x, false, CORRIDOR_MAP);
+    cost = generate_dijkstra_map(d, 1, (int *) sources, false, CORRIDOR_MAP);
 
     // Starting at the destination, roll downhill to the cheapest node
     i = dst_y;
     j = dst_x;
 
     while (i != src_y || j != src_x) {
-        int neighbor_cost;
-        Direction_T direction;
+        int best_cost;
+        Cardinal_T direction;
 
         // Start with up
         direction = UP;
-        neighbor_cost = COST(i - 1, j);
+        best_cost = COST(i - 1, j);
 
-        if (neighbor_cost > COST(i + 1, j)) {
-            neighbor_cost = COST(i + 1, j);
+        if (best_cost > COST(i + 1, j)) {
+            best_cost = COST(i + 1, j);
             direction = DOWN;
         }
 
-        if (neighbor_cost > COST(i, j - 1)) {
-            neighbor_cost = COST(i, j - 1);
+        if (best_cost > COST(i, j - 1)) {
+            best_cost = COST(i, j - 1);
             direction = LEFT;
         }
 
         // We don't care about setting cost, since this is the last neighbor to check
-        if (neighbor_cost > COST(i, j + 1)) {
+        if (best_cost > COST(i, j + 1)) {
             direction = RIGHT;
         }
 
@@ -337,7 +347,7 @@ static void place_stairs(Dungeon_T *d) {
 // as soon as it does. If it fails, makes too few rooms or doesn't cover enough of the map, it will retry, until it has
 // failed too many times. When it generates a workable dungeon, it randomizes the hardness across the array, connects
 // rooms, places stairs, places the PC, cleans up after itself, and returns a pointer to the full dungeon to the caller.
-Dungeon_T *new_dungeon(int height, int width, int min_rooms, int max_rooms, float percentage_covered) {
+Dungeon_T *generate_dungeon(int height, int width, int min_rooms, int max_rooms, float percentage_covered) {
     int tries;
     bool success;
     Dungeon_T *d;
@@ -356,14 +366,14 @@ Dungeon_T *new_dungeon(int height, int width, int min_rooms, int max_rooms, floa
 
         // Check to see if we failed after too many tries to generate a dungeon
         if (tries > FAILED_DUNGEON_GENERATION) {
-            kill(DUNGEON_GENERATION_FAILURE,
+            bail(DUNGEON_GENERATION_FAILURE,
                  "FATAL ERROR! FAILED TO GENERATE WORKABLE DUNGEON AFTER %i TRIES! TRY NEW PARAMETERS!\n",
                  FAILED_DUNGEON_GENERATION);
         }
 
         // Allocate space for room array. generate_rooms will bail if it makes too many and return false. realloc()
         // will act like malloc() if d-rooms =  NULL.
-        d->rooms = safe_realloc(d->rooms, max_rooms * sizeof(Room_T));
+        d->rooms = safe_realloc(d->rooms, max_rooms * sizeof(struct Room_S));
 
         // Try generating rooms... if it makes more than max_rooms, it will bail as soon as it does, returning false
         // meaning we need to try again to generate new rooms.
@@ -374,169 +384,12 @@ Dungeon_T *new_dungeon(int height, int width, int min_rooms, int max_rooms, floa
     } while (!success || !is_room_percentage_covered(d, percentage_covered) || min_rooms > d->num_rooms);
 
     // If we generate less rooms than max_rooms, shrink the array so as to not waste memory
-    d->rooms = safe_realloc(d->rooms, d->num_rooms * sizeof(Room_T));
+    d->rooms = safe_realloc(d->rooms, d->num_rooms * sizeof(struct Room_S));
 
     // Finish up our generation
     randomize_hardness(d);
     generate_corridors(d);
     place_stairs(d);
-    place_pc(d);
 
     return d;
 }
-
-// Initializes a dungeon's variables. Sets num_rooms to be zero, and rooms to NULL. This is the function to be sure to
-// update if Cell_T is extended.
-void init_dungeon(Dungeon_T *d, int height, int width) {
-    int i, j;
-
-    // Static values
-    d->height = height;
-    d->width = width;
-
-    // These will be set later as part of generation
-    d->num_rooms = 0;
-    d->rooms = NULL;
-    d->player = NULL;
-
-    // Allocate our map array
-    d->map = safe_malloc(height * width * sizeof(Cell_T));
-    for (i = 0; i < d->height; i++) {
-        for (j = 0; j < d->width; j++) {
-            d->MAP(i, j).type = DEFAULT_CELL_TYPE;
-            d->MAP(i, j).hardness = DEFAULT_HARDNESS;
-            d->MAP(i, j).character = NULL;
-        }
-    }
-}
-
-// See dungeon.h
-void generate_dungeon_border(Dungeon_T *d) {
-    int i;
-
-    // Left and right
-    for (i = 1; i < d->height - 1; i++) {
-        d->MAP(i, 0).hardness = IMMUTABLE_ROCK_HARDNESS;
-        d->MAP(i, d->width - 1).hardness = IMMUTABLE_ROCK_HARDNESS;
-    }
-
-    // Top and bottom
-    for (i = 0; i < d->width; i++) {
-        d->MAP(0, i).hardness = IMMUTABLE_ROCK_HARDNESS;
-        d->MAP(d->height - 1, i).hardness = IMMUTABLE_ROCK_HARDNESS;
-    }
-}
-
-// See dungeon.h
-void place_pc(Dungeon_T *d) {
-    int room, y, x;
-
-    // Pick room randomly, then pick random coordinate in that room and create the PC.
-    room = rand_int_in_range(0, d->num_rooms - 1);
-    y = rand_int_in_range(d->rooms[room].y, d->rooms[room].y + d->rooms[room].height - 1);
-    x = rand_int_in_range(d->rooms[room].x, d->rooms[room].x + d->rooms[room].width - 1);
-    d->player = new_character(d, y, x, PC_SYMBOL, PC_COLOR, true);
-    d->MAP(y, x).character = d->player;
-}
-
-// See dungeon.h
-void cleanup_dungeon(Dungeon_T *d) {
-    int i, j;
-
-    // Free any characters that aren't the player
-    for (i = 0; i < d->height; i++) {
-        for (j = 0; j < d->width; j++) {
-            if (d->MAP(i, j).character != NULL && !d->MAP(i, j).character->player) {
-                cleanup_character(d->MAP(i, j).character);
-            }
-        }
-    }
-
-    // Free the rest of our pointers
-    cleanup_character(d->player);
-    free(d->map);
-    free(d->rooms);
-    free(d);
-}
-
-// See dungeon.h
-char cell_type_char(Cell_Type_T c) {
-    switch (c) {
-        case ROCK: // NOLINT(bugprone-branch-clone)
-            return ROCK_CHAR;
-        case ROOM:
-            return ROOM_CHAR;
-        case CORRIDOR:
-            return CORRIDOR_CHAR;
-        case STAIR_UP:
-            return STAIR_UP_CHAR;
-        case STAIR_DOWN:
-            return STAIR_DOWN_CHAR;
-        default:
-            return '?';
-    }
-}
-
-// See dungeon.h
-char *cell_type_color(Cell_Type_T c) {
-    switch (c) {
-        case ROCK: // NOLINT(bugprone-branch-clone)
-            return ROCK_COLOR;
-        case ROOM:
-            return ROOM_COLOR;
-        case CORRIDOR:
-            return CORRIDOR_COLOR;
-        case STAIR_UP:
-            return STAIR_UP_COLOR;
-        case STAIR_DOWN:
-            return STAIR_DOWN_COLOR;
-        default:
-            return CONSOLE_RESET;
-    }
-}
-
-// See dungeon.h
-char *cell_type_background(Cell_Type_T c) {
-    switch (c) {
-        case ROCK:
-            return ROCK_BACKGROUND;
-        case ROOM:
-            return ROOM_BACKGROUND;
-        case CORRIDOR:
-            return CORRIDOR_BACKGROUND;
-        case STAIR_UP: // NOLINT(bugprone-branch-clone)
-            return STAIR_UP_BACKGROUND;
-        case STAIR_DOWN:
-            return STAIR_DOWN_BACKGROUND;
-        default:
-            return CONSOLE_RESET;
-    }
-}
-
-// See dungeon.h
-void print_dungeon(const Dungeon_T *d) {
-    int i, j;
-
-    for (i = 0; i < d->height; i++) {
-        for (j = 0; j < d->width; j++) {
-
-            // Check if there's a character. Otherwise print the cell.
-            if (d->MAP(i, j).character != NULL) {
-                printf("%s%s%c%s", cell_type_background(d->MAP(i, j).type), d->MAP(i, j).character->color,
-                       d->MAP(i, j).character->symbol, CONSOLE_RESET);
-            } else {
-                printf("%s%s%c%s", cell_type_background(d->MAP(i, j).type), cell_type_color(d->MAP(i, j).type),
-                       cell_type_char(d->MAP(i, j).type), CONSOLE_RESET);
-            }
-        }
-
-        // Print a new line after every row
-        printf("\n");
-    }
-
-    // Print a new line after the last row to space multiple maps apart
-    printf("\n");
-}
-
-
-

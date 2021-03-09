@@ -2,7 +2,8 @@
 
 #include "pairing-heap.h"
 #include "helpers.h"
-#include "../Settings/exit-codes.h"
+
+#include "Settings/exit-codes.h"
 
 // Helper to merge two trees together.
 static Heap_Node_T *merge(Heap_Node_T *a, Heap_Node_T *b) {
@@ -151,7 +152,7 @@ Heap_Node_T *heap_dynamic_insert(Heap_T *h, int key, void *data) {
 
     // Check to make sure the caller is using the function right.
     if (h->intrusive) {
-        kill(INVALID_STATE, "FATAL ERROR! HEAP IS INTRUSIVE AND DYNAMIC INSERT CANNOT BE USED!");
+        bail(INVALID_STATE, "FATAL ERROR! HEAP IS INTRUSIVE AND DYNAMIC INSERT CANNOT BE USED!");
     }
 
     // Allocate space for our new node
@@ -176,7 +177,7 @@ void heap_intrusive_insert(Heap_T *h, Heap_Node_T *n, int key, void *data) {
 
     // Check to make sure the caller is using the function right.
     if (!h->intrusive) {
-        kill(INVALID_STATE, "FATAL ERROR! HEAP IS DYNAMIC AND INTRUSIVE INSERT CANNOT BE USED!");
+        bail(INVALID_STATE, "FATAL ERROR! HEAP IS DYNAMIC AND INTRUSIVE INSERT CANNOT BE USED!");
     }
 
     // Set our node parameters

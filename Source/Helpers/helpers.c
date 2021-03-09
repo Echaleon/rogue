@@ -4,13 +4,14 @@
 #include <limits.h>
 
 #include "helpers.h"
-#include "../Settings/exit-codes.h"
+
+#include "Settings/exit-codes.h"
 
 // See helpers.h
 void *safe_malloc(size_t size) {
     void *p = malloc(size);
     if (p == NULL) { // if malloc() returns null, it failed
-        kill(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", size);
+        bail(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", size);
     }
 
     return p;
@@ -20,7 +21,7 @@ void *safe_malloc(size_t size) {
 void *safe_calloc(size_t num, size_t size) {
     void *p = calloc(num, size);
     if (p == NULL) { // if calloc() returns null, it failed
-        kill(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", num * size);
+        bail(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", num * size);
     }
 
     return p;
@@ -30,7 +31,7 @@ void *safe_calloc(size_t num, size_t size) {
 void *safe_realloc(void *old_ptr, size_t size) {
     void *p = realloc(old_ptr, size);
     if (p == NULL) { // if realloc() returns null, it failed
-        kill(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", size);
+        bail(MEM_FAILURE, "FATAL ERROR! FAILED TO ALLOCATE %i BYTES IN MEMORY!\n", size);
     }
 
     return p;
@@ -76,13 +77,21 @@ int count_digits(int n) {
 }
 
 // See helpers.h
-void kill(int code, char *message, ...) {
+int manhattan_distance(int y0, int x0, int y1, int x1) {
+    return abs(y0 - y1) + abs(x0 - x1);
+}
+
+
+// See helpers.h
+void bail(int code, char *msg, ...) {
     va_list args;
-    va_start(args, message);
-    vfprintf(stderr, message, args);
+    va_start(args, msg);
+    vfprintf(stderr, msg, args);
     va_end(args);
     exit(code);
 }
+
+
 
 
 

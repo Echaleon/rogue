@@ -4,8 +4,56 @@
 // This file sets compile time setting for how monsters and the dungeon is printed out.
 
 // Settings to control how characters are printed
-#define PC_COLOR FOREGROUND_COBALT
 #define PC_SYMBOL '@'
+#define PC_COLOR FOREGROUND_COBALT
+
+#define MONSTER_0_CHAR '0'
+#define MONSTER_0_COLOR FOREGROUND_WHITE
+
+#define MONSTER_1_CHAR '1'
+#define MONSTER_1_COLOR FOREGROUND_GREY
+
+#define MONSTER_2_CHAR '2'
+#define MONSTER_2_COLOR FOREGROUND_KHAKI
+
+#define MONSTER_3_CHAR '3'
+#define MONSTER_3_COLOR FOREGROUND_BROWN
+
+#define MONSTER_4_CHAR '4'
+#define MONSTER_4_COLOR FOREGROUND_RED
+
+#define MONSTER_5_CHAR '5'
+#define MONSTER_5_COLOR FOREGROUND_BRICK
+
+#define MONSTER_6_CHAR '6'
+#define MONSTER_6_COLOR FOREGROUND_ORANGE
+
+#define MONSTER_7_CHAR '7'
+#define MONSTER_7_COLOR FOREGROUND_YELLOW
+
+#define MONSTER_8_CHAR '8'
+#define MONSTER_8_COLOR FOREGROUND_LIME_GREEN
+
+#define MONSTER_9_CHAR '9'
+#define MONSTER_9_COLOR FOREGROUND_GREEN
+
+#define MONSTER_10_CHAR 'a'
+#define MONSTER_10_COLOR FOREGROUND_BLUE
+
+#define MONSTER_11_CHAR 'b'
+#define MONSTER_11_COLOR FOREGROUND_SKY_BLUE
+
+#define MONSTER_12_CHAR 'c'
+#define MONSTER_12_COLOR FOREGROUND_SLATE_BLUE
+
+#define MONSTER_13_CHAR 'd'
+#define MONSTER_13_COLOR FOREGROUND_TEAL
+
+#define MONSTER_14_CHAR 'e'
+#define MONSTER_14_COLOR FOREGROUND_PURPLE
+
+#define MONSTER_15_CHAR 'f'
+#define MONSTER_15_COLOR FOREGROUND_PINK
 
 // Settings to control how the dungeon is printed
 #define ROCK_COLOR FOREGROUND_WHITE

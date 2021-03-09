@@ -7,17 +7,17 @@
 #ifdef _WIN32
 #include <direct.h>
 #else
-
 #include <sys/stat.h>
-
 #endif
 
 #include "program-init.h"
 #include "helpers.h"
-#include "../Settings/arguments.h"
-#include "../Settings/exit-codes.h"
-#include "../Settings/misc-settings.h"
-#include "../Settings/file-settings.h"
+
+#include "Settings/arguments.h"
+#include "Settings/character-settings.h"
+#include "Settings/exit-codes.h"
+#include "Settings/file-settings.h"
+#include "Settings/misc-settings.h"
 
 // Struct to store all our arguments to pass between read_arguments() and init_program()
 typedef struct Arguments_S {
@@ -27,12 +27,15 @@ typedef struct Arguments_S {
     bool pgm_save;
     bool stairs;
     bool seed;
+    bool nummon;
+    bool print;
     bool help;
     bool version;
     char *load_path;
     char *save_dungeon_path;
     char *save_pgm_path;
     unsigned int rand_seed;
+    int num_monsters;
 } Arguments_T;
 
 // Helper for read_arguments that checks if the string is an actual argument for the program.
@@ -55,6 +58,12 @@ static bool is_argument_string(const char *s) {
         return true;
     }
     if (strcmp(s, SEED_LONG) == 0 || strcmp(s, SEED_SHORT) == 0) {
+        return true;
+    }
+    if (strcmp(s, NUMMON_LONG) == 0 || strcmp(s, NUMMON_SHORT) == 0) {
+        return true;
+    }
+    if (strcmp(s, PRINT_LONG) == 0 || strcmp(s, PRINT_SHORT) == 0) {
         return true;
     }
     if (strcmp(s, HELP_LONG) == 0 || strcmp(s, HELP_SHORT) == 0) {
@@ -80,12 +89,12 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->load) {
-                kill(INVALID_ARGUMENT, "Load option already specified!\n");
+                bail(INVALID_ARGUMENT, "Load option already specified!\n");
             }
 
             // Check if pgm-load has been used
             if (a->pgm_load) {
-                kill(INVALID_ARGUMENT, "PGM Load option already specified!\n");
+                bail(INVALID_ARGUMENT, "PGM Load option already specified!\n");
             }
 
             a->load = true;
@@ -105,7 +114,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->save) {
-                kill(INVALID_ARGUMENT, "Save option already specified!\n");
+                bail(INVALID_ARGUMENT, "Save option already specified!\n");
             }
 
             a->save = true;
@@ -126,12 +135,12 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->pgm_load) {
-                kill(INVALID_ARGUMENT, "PGM Load option already specified!\n");
+                bail(INVALID_ARGUMENT, "PGM Load option already specified!\n");
             }
 
             // Check if save has been used
             if (a->load) {
-                kill(INVALID_ARGUMENT, "Load option already specified!\n");
+                bail(INVALID_ARGUMENT, "Load option already specified!\n");
             }
 
             a->pgm_load = true;
@@ -151,7 +160,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->pgm_save) {
-                kill(INVALID_ARGUMENT, "PGM Save option already specified!\n");
+                bail(INVALID_ARGUMENT, "PGM Save option already specified!\n");
             }
 
             a->pgm_save = true;
@@ -171,7 +180,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->stairs) {
-                kill(INVALID_ARGUMENT, "Stair option already specified!\n");
+                bail(INVALID_ARGUMENT, "Stair option already specified!\n");
             }
             a->stairs = true;
             i++;
@@ -184,7 +193,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->seed) {
-                kill(INVALID_ARGUMENT, "Seed option already specified!\n");
+                bail(INVALID_ARGUMENT, "Seed option already specified!\n");
             }
             a->seed = true;
             i++;
@@ -196,13 +205,55 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
                 // strtol is safer than atil()... we can check if it's an int and if it actually worked
                 a->rand_seed = (unsigned int) strtol(argv[i], &end, 0);
                 if (end == NULL || *end != (char) 0) {
-                    kill(INVALID_ARGUMENT, "Invalid seed %s! Seed must be in integer!\n", argv[i]);
+                    bail(INVALID_ARGUMENT, "Invalid seed %s! Seed must be in integer!\n", argv[i]);
                 }
                 i++;
 
             } else {
-                kill(INVALID_ARGUMENT, "Seed option must have a seed argument!\n");
+                bail(INVALID_ARGUMENT, "Seed option must have a seed argument!\n");
             }
+
+            continue;
+        }
+
+        // Check for the nummon flag
+        if (strcmp(argv[i], NUMMON_LONG) == 0 || strcmp(argv[i], NUMMON_SHORT) == 0) {
+
+            // Check if it's been used
+            if (a->nummon) {
+                bail(INVALID_ARGUMENT, "Monster number option already specified!\n");
+            }
+            a->nummon = true;
+            i++;
+
+            // Find if there is an argument to seed and bail if there isn't
+            if (i < argc && !is_argument_string(argv[i])) {
+                char *end;
+
+                // strtol is safer than atil()... we can check if it's an int and if it actually worked
+                a->num_monsters = (int) strtol(argv[i], &end, 0);
+                if (end == NULL || *end != (char) 0 || a->num_monsters < 1) {
+                    bail(INVALID_ARGUMENT,
+                         "Invalid integer %s! Number of monsters must be an integer and greater than 0!\n", argv[i]);
+                }
+                i++;
+
+            } else {
+                bail(INVALID_ARGUMENT, "Monster number option must have an integer argument!\n");
+            }
+
+            continue;
+        }
+
+        // Check for the help flag
+        if (strcmp(argv[i], PRINT_LONG) == 0 || strcmp(argv[i], PRINT_SHORT) == 0) {
+
+            // Check if it's been used
+            if (a->print) {
+                bail(INVALID_ARGUMENT, "Print option already specified!\n");
+            }
+            a->print = true;
+            i++;
 
             continue;
         }
@@ -212,7 +263,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->help) {
-                kill(INVALID_ARGUMENT, "Help option already specified!\n");
+                bail(INVALID_ARGUMENT, "Help option already specified!\n");
             }
             a->help = true;
             i++;
@@ -225,7 +276,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
 
             // Check if it's been used
             if (a->help) {
-                kill(INVALID_ARGUMENT, "Version option already specified!\n");
+                bail(INVALID_ARGUMENT, "Version option already specified!\n");
             }
             a->version = true;
             i++;
@@ -234,7 +285,7 @@ static void read_arguments(int argc, const char *argv[], Arguments_T *a) {
         }
 
         // Invalid option
-        kill(INVALID_ARGUMENT, "Unknown option %s!\n", argv[i]);
+        bail(INVALID_ARGUMENT, "Unknown option %s!\n", argv[i]);
     }
 }
 
@@ -250,6 +301,8 @@ static void print_help() {
     printf("     <file> after will mean it saves to the p[ath instead of the default.\n");
     printf("--stairs causes stairs to be guaranteed to placed. Mostly useful for --pgm-load\n");
     printf("--seed <seed> will specify a seed for the RNG. MUST BE AN INTEGER!\n");
+    printf("--nummons <num> will specific the number of monsters to spawn. MUST BE AN INTEGER!\n");
+    printf("--print or -p causes the dungeon and cost maps to be printed out, instead of the game playing.\n");
     printf("--version will print the version of the program.\n");
     printf("--help will print this.\n");
     printf("\n");
@@ -276,14 +329,10 @@ void init_program(int argc, const char *argv[], Program_T *p) {
     pgm_path = NULL;
 
     // Initialize the program struct
-    p->load = false;
-    p->save = false;
-    p->pgm_load = false;
-    p->pgm_save = false;
-    p->stairs = false;
     p->load_path = NULL;
     p->save_dungeon_path = NULL;
     p->save_pgm_path = NULL;
+    p->num_monsters = 0;
 
     // Initialize the argument struct
     a.load = false;
@@ -292,12 +341,15 @@ void init_program(int argc, const char *argv[], Program_T *p) {
     a.pgm_save = false;
     a.stairs = false;
     a.seed = false;
+    a.nummon = false;
+    a.print = false;
     a.help = false;
     a.version = false;
     a.load_path = NULL;
     a.save_dungeon_path = NULL;
     a.save_pgm_path = NULL;
     a.rand_seed = 0;
+    a.num_monsters = DEFAULT_NUM_OF_MONSTERS;
 
     // Read in our arguments
     read_arguments(argc, argv, &a);
@@ -346,11 +398,11 @@ void init_program(int argc, const char *argv[], Program_T *p) {
 
         // Make the directory if it doesn't exist... need to specify different methods if we are on Windows or *nix.
         // The compiler will help us with that.
-#if defined(_WIN32)
+        #if defined(_WIN32)
         _mkdir(load_path);
-#else
+        #else
         mkdir(dungeon_path, 0700);
-#endif
+        #endif
 
         // Finish setting up the full load_path to the dungeon.
         strcat(dungeon_path, DEFAULT_DUNGEON_NAME);
@@ -379,11 +431,11 @@ void init_program(int argc, const char *argv[], Program_T *p) {
 
         // Make the directory if it doesn't exist... need to specify different methods if we are on Windows or *nix.
         // The compiler will help us with that.
-#if defined(_WIN32)
+        #if defined(_WIN32)
         _mkdir(load_path);
-#else
+        #else
         mkdir(pgm_path, 0700);
-#endif
+        #endif
 
         // Finish setting up the full path to the pgm.
         strcat(pgm_path, DEFAULT_PGM_NAME);
@@ -400,6 +452,10 @@ void init_program(int argc, const char *argv[], Program_T *p) {
     p->pgm_load = a.pgm_load;
     p->pgm_save = a.pgm_save;
     p->stairs = a.stairs;
+    p->print = a.print;
+
+    // Misc values to return to main
+    p->num_monsters = a.num_monsters;
 }
 
 // See program-init.h

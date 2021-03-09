@@ -28,6 +28,14 @@
 #define SEED_LONG "--seed"
 #define SEED_SHORT ""
 
+// Monster number options. User --nummon <int>
+#define NUMMON_LONG "--nummon"
+#define NUMMON_SHORT "-n"
+
+// Print options
+#define PRINT_LONG "--print"
+#define PRINT_SHORT "-p"
+
 // Help options
 #define HELP_LONG "--help"
 #define HELP_SHORT ""

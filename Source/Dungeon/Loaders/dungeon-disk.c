@@ -7,18 +7,20 @@
 #ifdef _WIN32
 #include <winsock.h>
 #else
-
 #include <arpa/inet.h>
-
 #endif
 
 #include "dungeon-disk.h"
-#include "dungeon.h"
-#include "../Character/character.h"
-#include "../Helpers/helpers.h"
-#include "../Settings/dungeon-settings.h"
-#include "../Settings/print-settings.h"
-#include "../Settings/file-settings.h"
+
+#include "dungeon-random.h"
+#include "Dungeon/dungeon.h"
+#include "Character/character.h"
+#include "Helpers/helpers.h"
+#include "Settings/character-settings.h"
+#include "Settings/dungeon-settings.h"
+#include "Settings/print-settings.h"
+#include "Settings/file-settings.h"
+
 
 // Helper function that places stairs in the dungeon randomly. d->num_rooms must be more than 0, and the player has to
 // be initialized.
@@ -212,7 +214,7 @@ Dungeon_T *load_dungeon(const char *path, bool stairs) {
                 "Player cannot be in rock: (%i, %i)! Dungeon will be unplayable! Using random dungeon!\n", x, y);
         goto cleanup_dungeon;
     }
-    d->player = new_character(d, y, x, PC_SYMBOL, PC_COLOR, true);
+    d->player = new_character(d, y, x, PC_SPEED, 0, PC_SYMBOL, PC_COLOR, true);
     d->MAP(y, x).character = d->player;
 
     // Check if we can read the number of rooms without going out of bounds.
@@ -370,7 +372,8 @@ Dungeon_T *load_dungeon(const char *path, bool stairs) {
         if (stairs) {
             place_stairs(d);
         } else {
-            fprintf(stderr, "Dungeons without stairs will be mostly unplayable! Consider using a random dungeon or the stairs switch!\n");
+            fprintf(stderr,
+                    "Dungeons without stairs will be mostly unplayable! Consider using a random dungeon or the stairs switch!\n");
         }
     }
 
@@ -386,7 +389,7 @@ Dungeon_T *load_dungeon(const char *path, bool stairs) {
     free(buffer);
 
     cleanup:
-    return new_dungeon(DUNGEON_HEIGHT, DUNGEON_WIDTH, MIN_NUM_ROOMS, MAX_NUM_ROOMS, PERCENTAGE_ROOM_COVERED);
+    return generate_dungeon(DUNGEON_HEIGHT, DUNGEON_WIDTH, MIN_NUM_ROOMS, MAX_NUM_ROOMS, PERCENTAGE_ROOM_COVERED);
 }
 
 // Load a dungeon from a pgm file, allowing the user to create their own dungeons in a photo editor. It's picky, but
@@ -598,9 +601,8 @@ Dungeon_T *load_pgm(const char *path, bool stairs) {
         }
     }
 
-    // Generator our dungeon borders and place the PC
+    // Generator our dungeon borders
     generate_dungeon_border(d);
-    place_pc(d);
 
     // Place up and down stairs if asked to
     if (stairs) {
@@ -616,7 +618,7 @@ Dungeon_T *load_pgm(const char *path, bool stairs) {
     free(buffer);
 
     cleanup:
-    return new_dungeon(DUNGEON_HEIGHT, DUNGEON_WIDTH, MIN_NUM_ROOMS, MAX_NUM_ROOMS, PERCENTAGE_ROOM_COVERED);
+    return generate_dungeon(DUNGEON_HEIGHT, DUNGEON_WIDTH, MIN_NUM_ROOMS, MAX_NUM_ROOMS, PERCENTAGE_ROOM_COVERED);
 }
 
 // Massive function that saves the dungeon to disk. Works basically the opposite of the load_dungeon() function. It

@@ -1,38 +1,106 @@
-OBJS	= rogue.o Character/character.o Dungeon/dijkstra.o Dungeon/dungeon.o Dungeon/dungeon-disk.o  Helpers/helpers.o Helpers/pairing-heap.o Helpers/program-init.o Helpers/stack.o
-SOURCE	= rogue.c Character/character.c Dungeon/dijkstra.c Dungeon/dungeon.c Dungeon/dungeon-disk.c  Helpers/helpers.c Helpers/pairing-heap.c Helpers/program-init.c Helpers/stack.c
-HEADER	= Character/character.h Dungeon/dijkstra.h Dungeon/dungeon.h Dungeon/dungeon-disk.h Helpers/helpers.h Helpers/pairing-heap.h Helpers/program-init.h Helpers/stack.h Settings/arguments.h Settings/dungeon-settings.h Settings/exit-codes.h Settings/file-settings.h Settings/misc-settings.h Settings/print-settings.h
-OUT	= rogue
-LFLAGS = -std=c11 -g3 -Wall -pedantic
+# Output executable
+RELEASE_EXEC ?= rogue
+DEBUG_EXEC ?= rogue-debug
 
-all: rogue
+# Flags to apply to every build
+FLAGS ?=-std=c11 -pipe -march=native -Wall -Wextra -pedantic
 
-rogue: $(OBJS)
-	$(CC) -o $@ $^ $(LFLAGS)
+# Flags to apply to specific targets
+DEBUG_FLAGS ?=-g
+RELEASE_FLAGS ?=-O2 -DNDEBUG -flto -Werror
 
-%.o: %.c $(HEADER)
-	$(CC) -c -o $@ $< $(LFLAGS)
+# Source directory
+SRC_DIRS ?= ./Source
 
-# clean house
+# Output directories
+DEBUG_DIR ?= ./make-build-debug
+RELEASE_DIR ?= ./make-build-release
+
+# Default goal
+.DEFAULT_GOAL := $(DEBUG_EXEC)
+
+###############################################################
+
+SRCS := $(shell find $(SRC_DIRS) -name *.cpp -or -name *.c)
+
+DEBUG_OBJS := $(SRCS:%=$(DEBUG_DIR)/%.o)
+RELEASE_OBJS := $(SRCS:%=$(RELEASE_DIR)/%.o)
+
+DEBUG_DEPS := $(DEBUG_OBJS:.o=.d)
+RELEASE_DEPS := $(RELEASE_OBJS:.o=.d)
+
+INC_DIRS := $(shell find $(SRC_DIRS) -type d)
+INC_FLAGS := $(addprefix -I,$(INC_DIRS))
+
+BUILD_FLAGS ?= $(INC_FLAGS) $(FLAGS) -MMD -MP
+
+###############################################################
+
+debug: $(DEBUG_EXEC)
+
+$(DEBUG_EXEC): $(DEBUG_OBJS)
+	$(info Linking $(notdir $@))
+	@$(CC) $(DEBUG_FLAGS) $(BUILD_FLAGS) $(DEBUG_OBJS) -o $@ $(LDFLAGS)
+
+$(DEBUG_DIR)/%.c.o: %.c
+	$(info Compiling $(notdir $<))
+	@$(MKDIR_P) $(dir $@)
+	@$(CC) $(DEBUG_FLAGS) $(BUILD_FLAGS) $(CFLAGS) -c $< -o $@
+
+# c++ source
+$(DEBUG_DIR)/%.cpp.o: %.cpp
+	$(info Compiling $(notdir $<))
+	@$(MKDIR_P) $(dir $@)
+	@$(CXX) $(DEBUG_FLAGS) $(BUILD_FLAGS) $(CXXFLAGS) -c $< -o $@
+
+run_debug: debug
+	./$(DEBUG_EXEC)
+
+###############################################################
+
+release: $(RELEASE_EXEC)
+
+$(RELEASE_EXEC): $(RELEASE_OBJS)
+	$(info Linking $(notdir $@))
+	@$(CC) $(RELEASE_FLAGS) $(BUILD_FLAGS) $(RELEASE_OBJS) -o $@ $(LDFLAGS)
+
+$(RELEASE_DIR)/%.c.o: %.c
+	$(info Compiling $(notdir $<))
+	@$(MKDIR_P) $(dir $@)
+	@$(CC) $(RELEASE_FLAGS) $(BUILD_FLAGS) $(CFLAGS) -c $< -o $@
+
+# c++ source
+$(RELEASE_DIR)/%.cpp.o: %.cpp
+	$(info Compiling $(notdir $<))
+	@$(MKDIR_P) $(dir $@)
+	@$(CXX) $(RELEASE_FLAGS) $(BUILD_FLAGS) $(CXXFLAGS) -c $< -o $@
+
+run_release: release
+	./$(RELEASE_EXEC)
+
+###############################################################
+
+.PHONY: clean
+
 clean:
-	rm -f $(OBJS) $(OUT)
+	$(info Cleaning up)
+	@$(RM) -r $(DEBUG_DIR)
+	@$(RM) -r $(RELEASE_DIR)
+	@$(RM) $(DEBUG_EXEC)
+	@$(RM) $(RELEASE_EXEC)
 
-# run the program
-run: $(OUT)
-	./$(OUT)
+run: $(.DEFAULT_GOAL)
+	./$(.DEFAULT_GOAL)
 
-# compile program with debugging information
-debug: $(OUT)
-	valgrind ./$(OUT)
+valgrind: debug
+	valgrind --leak-check=full --show-leak-kinds=all --leak-resolution=high --track-origins=yes --vgdb=yes ./$(DEBUG_EXEC) --seed 10
 
-# run program with valgrind for errors
-valgrind: $(OUT)
-	valgrind ./$(OUT)
+###############################################################
 
-# run program with valgrind for leak checks
-valgrind_leakcheck: $(OUT)
-	valgrind --leak-check=full ./$(OUT)
+-include $(DEBUG_DEPS)
+-include $(RELEASE_DEPS)
 
-# run program with valgrind for leak checks (extreme)
-valgrind_extreme: $(OUT)
-	valgrind --leak-check=full --show-leak-kinds=all --leak-resolution=high --track-origins=yes --vgdb=yes ./$(OUT)
+MKDIR_P ?= mkdir -p
+
+
 

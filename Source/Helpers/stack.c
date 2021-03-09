@@ -2,7 +2,8 @@
 
 #include "stack.h"
 #include "helpers.h"
-#include "../Settings/misc-settings.h"
+
+#include "Settings/misc-settings.h"
 
 // See stack.h
 Stack_T *new_stack() {

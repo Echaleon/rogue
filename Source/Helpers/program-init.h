@@ -11,9 +11,11 @@ typedef struct Program_S {
     bool pgm_load;
     bool pgm_save;
     bool stairs;
+    bool print;
     char *load_path;
     char *save_dungeon_path;
     char *save_pgm_path;
+    int num_monsters;
 } Program_T;
 
 // Function that initializes settings, and sets up the correct environment for later functions.
